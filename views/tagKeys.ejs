@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>List Tag Keys</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>List Tag Keys for <%= measurement %> in <%= bucket %></h1>
+    <ul>
+      <% tagKeys.forEach(tagKey => { %>
+        <li><a href="/tag-values/<%= bucket %>/<%= measurement %>/<%= tagKey %>"><%= tagKey %></a></li>
+      <% }) %>
+    </ul>
+  </div>
+</body>
+</html>
