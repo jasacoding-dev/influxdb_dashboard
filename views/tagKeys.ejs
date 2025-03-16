@@ -4,16 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>List Tag Keys</title>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <style>
+    .card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .list-group-item {
+      transition: background-color 0.2s;
+    }
+    .list-group-item:hover {
+      background-color: #f8f9fa;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>List Tag Keys for <%= measurement %> in <%= bucket %></h1>
-    <ul>
+  <div class="container mt-5">
+    <div class="text-center mb-4">
+      <h1 class="display-4">List Tag Keys</h1>
+      <p class="lead">
+        Bucket: <strong><%= bucket %></strong> | 
+        Measurement: <strong><%= measurement %></strong>
+      </p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
       <% tagKeys.forEach(tagKey => { %>
-        <li><a href="/tag-values/<%= bucket %>/<%= measurement %>/<%= tagKey %>"><%= tagKey %></a></li>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title"><%= tagKey %></h5>
+              <p class="card-text">Klik untuk melihat tag values pada tag key ini.</p>
+              <a href="/tag-values/<%= bucket %>/<%= measurement %>/<%= tagKey %>" class="btn btn-primary">Lihat Tag Values</a>
+            </div>
+          </div>
+        </div>
       <% }) %>
-    </ul>
+    </div>
+
+    <!-- Jika tidak ada tag keys -->
+    <% if (tagKeys.length === 0) { %>
+      <div class="alert alert-warning mt-4" role="alert">
+        Tidak ada tag keys yang tersedia untuk measurement ini.
+      </div>
+    <% } %>
   </div>
+
+  <!-- Tombol Kembali -->
+  <div class="container mt-4 text-center">
+    <a href="/field-keys/<%= bucket %>/<%= measurement %>" class="btn btn-outline-secondary">Kembali ke Daftar Field Keys</a>
+  </div>
+
+  <!-- Bootstrap 5 JS (Optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
