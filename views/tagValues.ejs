@@ -3,34 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>List Tag Values</title>
-  <!-- Bootstrap 5 CSS -->
+  <title>Tag Values</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Custom CSS -->
   <style>
-    .card {
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .list-group-item {
-      transition: background-color 0.2s;
-    }
-    .list-group-item:hover {
-      background-color: #f8f9fa;
-    }
+    .card { transition: transform 0.2s, box-shadow 0.2s; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
   </style>
 </head>
 <body>
   <div class="container mt-5">
     <div class="text-center mb-4">
-      <h1 class="display-4">List Tag Values</h1>
+      <h1 class="display-4">Tag Values</h1>
       <p class="lead">
-        Bucket: <strong><%= bucket %></strong> | 
-        Measurement: <strong><%= measurement %></strong> | 
-        Tag Key: <strong><%= tagKey %></strong>
+        Bucket: <strong><%= bucket %></strong>
+        <% if (measurement) { %> | Measurement: <strong><%= measurement %></strong><% } %>
+        | Tag Key: <strong><%= tagKey %></strong>
       </p>
     </div>
 
@@ -40,14 +27,13 @@
           <div class="card h-100">
             <div class="card-body">
               <h5 class="card-title"><%= tagValue %></h5>
-              <p class="card-text">Tag value pada tag key ini.</p>
+              <p class="card-text">Nilai untuk tag key ini.</p>
             </div>
           </div>
         </div>
       <% }) %>
     </div>
 
-    <!-- Jika tidak ada tag values -->
     <% if (tagValues.length === 0) { %>
       <div class="alert alert-warning mt-4" role="alert">
         Tidak ada tag values yang tersedia untuk tag key ini.
@@ -55,12 +41,14 @@
     <% } %>
   </div>
 
-  <!-- Tombol Kembali -->
   <div class="container mt-4 text-center">
-    <a href="/tag-keys/<%= bucket %>/<%= measurement %>" class="btn btn-outline-secondary">Kembali ke Daftar Tag Keys</a>
+    <% if (measurement) { %>
+      <a href="/tag-keys/<%= bucket %>/<%= measurement %>" class="btn btn-outline-secondary">Kembali ke Tag Keys</a>
+    <% } else { %>
+      <a href="/tag-keys/<%= bucket %>" class="btn btn-outline-secondary">Kembali ke Tag Keys</a>
+    <% } %>
   </div>
 
-  <!-- Bootstrap 5 JS (Optional) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

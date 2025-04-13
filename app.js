@@ -17,115 +17,157 @@ app.use(express.static('public'));
 // Set view engine to ejs
 app.set('view engine', 'ejs');
 
-// Route untuk homepage
-
-
-// Route untuk menampilkan list buckets
-app.get('/', async (req, res) => {
+// Helper function untuk query Flux
+async function queryFlux(query, res, callback) {
   const queryApi = influxDB.getQueryApi(orgId);
-  const query = flux`buckets()`;
-  const buckets = [];
+  const results = [];
 
   queryApi.queryRows(query, {
     next(row, tableMeta) {
       const o = tableMeta.toObject(row);
-      buckets.push(o.name);
+      results.push(o);
     },
     error(error) {
       console.error(error);
-      res.status(500).send('Error fetching buckets');
+      res.status(500).send('Error executing query');
     },
     complete() {
-      res.render('buckets', { buckets });
+      callback(results);
     },
+  });
+}
+
+// Route untuk homepage - List buckets
+app.get('/', async (req, res) => {
+  const query = flux`buckets()`;
+  
+  queryFlux(query, res, (buckets) => {
+    const bucketNames = buckets.map(b => b.name);
+    res.render('buckets', { buckets: bucketNames });
   });
 });
 
 // Route untuk menampilkan list measurements
 app.get('/measurements/:bucket', async (req, res) => {
   const bucket = req.params.bucket;
-  const queryApi = influxDB.getQueryApi(orgId);
-  const query = flux`from(bucket: "${bucket}") |> range(start: -30d) |> keys() |> keep(columns: ["_measurement"]) |> distinct()`;
-  const measurements = [];
-
-  queryApi.queryRows(query, {
-    next(row, tableMeta) {
-      const o = tableMeta.toObject(row);
-      measurements.push(o._measurement);
-    },
-    error(error) {
-      console.error(error);
-      res.status(500).send('Error fetching measurements');
-    },
-    complete() {
-      res.render('measurements', { bucket, measurements });
-    },
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.measurements(bucket: "${bucket}")
+  `;
+  
+  queryFlux(query, res, (measurements) => {
+    const measurementNames = measurements.map(m => m._value);
+    res.render('measurements', { bucket, measurements: measurementNames });
   });
 });
 
 // Route untuk menampilkan list field keys
 app.get('/field-keys/:bucket/:measurement', async (req, res) => {
   const { bucket, measurement } = req.params;
-  const queryApi = influxDB.getQueryApi(orgId);
-  const query = flux`from(bucket: "${bucket}") |> range(start: -30d) |> filter(fn: (r) => r._measurement == "${measurement}") |> keys() |> keep(columns: ["_field"]) |> distinct()`;
-  const fieldKeys = [];
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.fieldKeys(
+      bucket: "${bucket}",
+      measurement: "${measurement}"
+    )
+  `;
+  
+  queryFlux(query, res, (fields) => {
+    const fieldKeys = fields.map(f => f._value);
+    res.render('fieldKeys', { bucket, measurement, fieldKeys });
+  });
+});
 
-  queryApi.queryRows(query, {
-    next(row, tableMeta) {
-      const o = tableMeta.toObject(row);
-      fieldKeys.push(o._field);
-    },
-    error(error) {
-      console.error(error);
-      res.status(500).send('Error fetching field keys');
-    },
-    complete() {
-      res.render('fieldKeys', { bucket, measurement, fieldKeys });
-    },
+// Route untuk menampilkan list fields in a measurement (similar to field keys)
+app.get('/fields/:bucket/:measurement', async (req, res) => {
+  const { bucket, measurement } = req.params;
+  const query = flux`
+    from(bucket: "${bucket}")
+      |> range(start: -30d)
+      |> filter(fn: (r) => r._measurement == "${measurement}")
+      |> group(columns: ["_field"])
+      |> distinct(column: "_field")
+  `;
+  
+  queryFlux(query, res, (fields) => {
+    const fieldList = fields.map(f => f._field);
+    res.render('fields', { bucket, measurement, fields: fieldList });
   });
 });
 
 // Route untuk menampilkan list tag keys
+app.get('/tag-keys/:bucket', async (req, res) => {
+  const { bucket } = req.params;
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.tagKeys(bucket: "${bucket}")
+  `;
+  
+  queryFlux(query, res, (tags) => {
+    const tagKeys = tags.map(t => t._value);
+    res.render('tagKeys', { bucket, tagKeys, measurement: null });
+  });
+});
+
+// Route untuk menampilkan list tag keys in a measurement
 app.get('/tag-keys/:bucket/:measurement', async (req, res) => {
   const { bucket, measurement } = req.params;
-  const queryApi = influxDB.getQueryApi(orgId);
-  const query = flux`from(bucket: "${bucket}") |> range(start: -30d) |> filter(fn: (r) => r._measurement == "${measurement}") |> keys() |> keep(columns: ["_field"]) |> distinct()`;
-  const tagKeys = [];
-
-  queryApi.queryRows(query, {
-    next(row, tableMeta) {
-      const o = tableMeta.toObject(row);
-      tagKeys.push(o._field);
-    },
-    error(error) {
-      console.error(error);
-      res.status(500).send('Error fetching tag keys');
-    },
-    complete() {
-      res.render('tagKeys', { bucket, measurement, tagKeys });
-    },
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.tagKeys(
+      bucket: "${bucket}",
+      predicate: (r) => r._measurement == "${measurement}"
+    )
+  `;
+  
+  queryFlux(query, res, (tags) => {
+    const tagKeys = tags.map(t => t._value);
+    res.render('tagKeys', { bucket, measurement, tagKeys });
   });
 });
 
 // Route untuk menampilkan list tag values
+app.get('/tag-values/:bucket/:tagKey', async (req, res) => {
+  const { bucket, tagKey } = req.params;
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.tagValues(
+      bucket: "${bucket}",
+      tag: "${tagKey}"
+    )
+  `;
+  
+  queryFlux(query, res, (tags) => {
+    const tagValues = tags.map(t => t._value);
+    res.render('tagValues', { 
+      bucket, 
+      tagKey, 
+      tagValues, 
+      measurement: null 
+    });
+  });
+});
+
+// Route untuk menampilkan list tag values in a measurement
 app.get('/tag-values/:bucket/:measurement/:tagKey', async (req, res) => {
   const { bucket, measurement, tagKey } = req.params;
-  const queryApi = influxDB.getQueryApi(orgId);
-  const query = flux`from(bucket: "${bucket}") |> range(start: -30d) |> filter(fn: (r) => r._measurement == "${measurement}") |> keep(columns: ["${tagKey}"]) |> distinct()`;
-  const tagValues = [];
-
-  queryApi.queryRows(query, {
-    next(row, tableMeta) {
-      const o = tableMeta.toObject(row);
-      tagValues.push(o[tagKey]);
-    },
-    error(error) {
-      console.error(error);
-      res.status(500).send('Error fetching tag values');
-    },
-    complete() {
-      res.render('tagValues', { bucket, measurement, tagKey, tagValues });
-    },
+  const query = flux`
+    import "influxdata/influxdb/schema"
+    schema.tagValues(
+      bucket: "${bucket}",
+      tag: "${tagKey}",
+      predicate: (r) => r._measurement == "${measurement}"
+    )
+  `;
+  
+  queryFlux(query, res, (tags) => {
+    const tagValues = tags.map(t => t._value);
+    res.render('tagValues', { 
+      bucket, 
+      measurement, 
+      tagKey, 
+      tagValues 
+    });
   });
 });
 
